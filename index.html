@@ -9,30 +9,32 @@
         td:nth-child(6) { border-right: 4px solid black; }
     </style>
     <script>
-        function calculateHours(tableId) {
-            let totalNonHygiene = 0, totalHygieneHours = 0, totalHours = 0;
-            for (let i = 1; i <= 6; i++) {
-                let startTime = document.getElementById(`start${tableId}${i}`).value;
-                let endTime = document.getElementById(`end${tableId}${i}`).value;
-                let lunch = parseFloat(document.getElementById(`lunch${tableId}${i}`).value) || 0;
-                let nonHygiene = parseFloat(document.getElementById(`nonHygiene${tableId}${i}`).value) || 0;
+        function calculateHours(tableId, rowIndex) {
+            let startTime = document.getElementById(`start${tableId}${rowIndex}`).value;
+            let endTime = document.getElementById(`end${tableId}${rowIndex}`).value;
+            let lunch = parseFloat(document.getElementById(`lunch${tableId}${rowIndex}`).value) || 0;
+            let nonHygiene = parseFloat(document.getElementById(`nonHygiene${tableId}${rowIndex}`).value) || 0;
+            
+            if (startTime && endTime) {
+                let start = new Date(`01/01/2023 ${startTime}`);
+                let end = new Date(`01/01/2023 ${endTime}`);
+                let hygieneHours = (end - start) / (1000 * 60 * 60) - lunch - nonHygiene;
+                let totalDayHours = hygieneHours + nonHygiene;
                 
-                if (startTime && endTime) {
-                    let start = new Date(`01/01/2023 ${startTime}`);
-                    let end = new Date(`01/01/2023 ${endTime}`);
-                    let hygieneHours = (end - start) / (1000 * 60 * 60) - lunch - nonHygiene;
-                    let totalDayHours = hygieneHours + nonHygiene;
-                    
-                    document.getElementById(`hygiene${tableId}${i}`).value = hygieneHours.toFixed(2);
-                    document.getElementById(`total${tableId}${i}`).value = totalDayHours.toFixed(2);
-                    
-                    totalNonHygiene += nonHygiene;
-                    totalHygieneHours += hygieneHours;
-                    totalHours += totalDayHours;
-                }
+                document.getElementById(`hygiene${tableId}${rowIndex}`).value = hygieneHours.toFixed(2);
+                document.getElementById(`total${tableId}${rowIndex}`).value = totalDayHours.toFixed(2);
             }
-            document.getElementById(`sumNonHygiene${tableId}`).value = totalNonHygiene.toFixed(2);
-            document.getElementById(`sumHygiene${tableId}`).value = totalHygieneHours.toFixed(2);
+            calculateTableTotals(tableId);
+        }
+
+        function calculateTableTotals(tableId) {
+            let totalHygiene = 0, totalNonHygiene = 0, totalHours = 0;
+            for (let i = 1; i <= 6; i++) {
+                totalHygiene += parseFloat(document.getElementById(`hygiene${tableId}${i}`).value) || 0;
+                totalNonHygiene += parseFloat(document.getElementById(`nonHygiene${tableId}${i}`).value) || 0;
+                totalHours += parseFloat(document.getElementById(`total${tableId}${i}`).value) || 0;
+            }
+            document.getElementById(`sumHygiene${tableId}`).value = totalHygiene.toFixed(2);
             document.getElementById(`sumTotal${tableId}`).value = totalHours.toFixed(2);
             calculateSummary();
         }
@@ -63,6 +65,12 @@
             }
             return times;
         }
+
+        function getDefaultEndTime(index) {
+            if (index < 4) return "5:00 PM"; // Monday to Thursday
+            if (index === 4) return "12:00 PM"; // Friday
+            return ""; // No default for Saturday
+        }
     </script>
 </head>
 <body>
@@ -83,12 +91,13 @@
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const timeOptions = generateTimeOptions();
             days.forEach((day, index) => {
+                let defaultEndTime = getDefaultEndTime(index);
                 document.write(`<tr>
                     <td>${day}</td>
-                    <td><select id="start${tableId}${index+1}" onchange="calculateHours('${tableId}')">` + timeOptions.map(t => `<option>${t}</option>`).join('') + `</select></td>
-                    <td><select id="end${tableId}${index+1}" onchange="calculateHours('${tableId}')">` + timeOptions.map(t => `<option>${t}</option>`).join('') + `</select></td>
-                    <td><input type="number" id="lunch${tableId}${index+1}" value="0" min="0" step="0.25" onchange="calculateHours('${tableId}')"></td>
-                    <td><input type="number" id="nonHygiene${tableId}${index+1}" value="0" min="0" step="0.25" onchange="calculateHours('${tableId}')"></td>
+                    <td><select id="start${tableId}${index+1}" onchange="calculateHours('${tableId}', ${index+1})">` + timeOptions.map(t => `<option>${t}</option>`).join('') + `</select></td>
+                    <td><select id="end${tableId}${index+1}" onchange="calculateHours('${tableId}', ${index+1})">` + timeOptions.map(t => `<option ${defaultEndTime === t ? 'selected' : ''}>${t}</option>`).join('') + `</select></td>
+                    <td><input type="number" id="lunch${tableId}${index+1}" value="0" min="0" step="0.25" onchange="calculateHours('${tableId}', ${index+1})"></td>
+                    <td><input type="number" id="nonHygiene${tableId}${index+1}" value="0" min="0" step="0.25" onchange="calculateHours('${tableId}', ${index+1})"></td>
                     <td style="border-right: 4px solid black;"><input type="text" id="hygiene${tableId}${index+1}" readonly></td>
                     <td><input type="text" id="total${tableId}${index+1}" readonly></td>
                 </tr>`);
